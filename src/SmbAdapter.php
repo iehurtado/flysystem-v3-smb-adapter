@@ -84,7 +84,15 @@ class SmbAdapter implements FilesystemAdapter
 
         try {
             $stream = $this->share->write($location);
-            \stream_copy_to_stream($resource, $stream);
+            $length = $config->get('write_stream_chunk_size', 4096);
+
+            do {
+                $bytes = \stream_copy_to_stream($resource, $stream, $length);
+
+                if ($bytes === false) {
+                    throw UnableToWriteFile::atLocation($location);
+                }
+            } while ($bytes > 0);
 
             if ($visibility = $config->get(Config::OPTION_VISIBILITY)) {
                 $this->fakeVisibility[$path] = \strval($visibility);
